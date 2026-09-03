@@ -2,7 +2,8 @@
 # PreToolUse hook. Enforces the founder hard line: no commit or push to main
 # without his approval at the moment it happens. Wired to the Bash tool and to
 # the GitHub file-write tools (push_files, create_or_update_file, delete_file).
-# Work that does not target main is never blocked. Fires inside subagents too.
+# Work that does not target main is not blocked by design; a form the wall
+# cannot read is denied with a reason. Fires inside subagents too.
 # Must stay instant: a hook that hits its timeout renders no decision, which
 # would fail open. A parse failure fails closed: the hook denies and says why;
 # it never allows in silence.
@@ -11,6 +12,7 @@ input="$(cat)"
 
 deny() { echo "DENIED by founder doctrine: $1" >&2; exit 2; }
 GUIDE="Main takes founder approval at the moment it happens: a pull request he tells you to merge, or a command he runs himself. Work on a feature branch and open a PR."
+SPLIT="If this command leaves main first, run that switch as its own call: the wall reads the real branch at each call and nothing inside one command can argue it off main."
 
 # Fields: jq when present, else a sed extraction of the JSON string fields.
 if command -v jq >/dev/null 2>&1; then
@@ -41,7 +43,17 @@ case "$cmd" in *git*) ;; *) exit 0 ;; esac
 
 # Walk the command one shell segment at a time (split on newlines ; && || and |),
 # tracking a leading "cd <dir>" so a later git segment is checked in that repo.
-dir="$cwd"; sw_branch=""; sw_dir=""
+#
+# The branch rule is deliberately one-way. The live branch is read before the
+# command runs, so a "git checkout main" or "git switch main" earlier in the
+# same command counts as main for the later segments in that repository. But
+# nothing in a command can argue the wall OFF main: a switch away from main is
+# honored only by the next tool call, which reads the real branch. That means a
+# checkout that merely looks like a switch (a branch name followed by a path,
+# "-p", a tree-ish, a failed switch before ";") can never hide main. The cost is
+# a safe-direction deny when one command both leaves main and commits; the deny
+# says to split it.
+dir="$cwd"; on_main_dir=""
 while IFS= read -r seg; do
   cdto="$(printf '%s' "$seg" | sed -nE 's/^[[:space:]]*cd[[:space:]]+([^[:space:]]+).*/\1/p')"
   if [ -n "$cdto" ]; then
@@ -66,39 +78,19 @@ while IFS= read -r seg; do
   repo="$(printf '%s' "$seg" | sed -nE 's/.*git[[:space:]]+(-[^C][^[:space:]]*[[:space:]]+([^-][^[:space:]]*[[:space:]]+)?)*-C[[:space:]]*([^[:space:]]+).*/\3/p')"
   repo="${repo//\"/}"; repo="${repo//\'/}"; repo="${repo/#\~/$HOME}"
   case "$repo" in "") repo="$dir" ;; /*) ;; *) repo="$dir/$repo" ;; esac
-  # The live branch is read before the command runs, so a checkout or switch
-  # earlier in the same command overrides it for the later segments in that repo.
   branch=""
-  if [ -n "$sw_branch" ] && [ "$repo" = "$sw_dir" ]; then
-    branch="$sw_branch"
-  elif [ -n "$repo" ] && [ -d "$repo" ]; then
-    branch="$(git -C "$repo" rev-parse --abbrev-ref HEAD 2>/dev/null || true)"
-  fi
+  [ -n "$repo" ] && [ -d "$repo" ] && branch="$(git -C "$repo" rev-parse --abbrev-ref HEAD 2>/dev/null || true)"
+  [ -n "$on_main_dir" ] && [ "$repo" = "$on_main_dir" ] && branch=main
   if [ "$branch" = "main" ]; then
-    printf '%s' "$norm" | grep -qE 'git[[:space:]]+commit([[:space:]]|$)' && deny "commit on main. $GUIDE"
-    printf '%s' "$norm" | grep -qE 'git[[:space:]]+push([[:space:]]|$)' && deny "push from main. $GUIDE"
+    printf '%s' "$norm" | grep -qE 'git[[:space:]]+commit([[:space:]]|$)' && deny "commit on main. $GUIDE $SPLIT"
+    printf '%s' "$norm" | grep -qE 'git[[:space:]]+push([[:space:]]|$)' && deny "push from main. $GUIDE $SPLIT"
+    printf '%s' "$norm" | grep -qE 'git[[:space:]]+(merge|cherry-pick|revert|rebase|am)([[:space:]]|$)' && deny "merge, cherry-pick, revert, rebase or am on main is a commit on main. $GUIDE $SPLIT"
   fi
-  # Only a real branch switch may replace the branch for later segments: a
-  # target that is an existing local branch, a new branch made by -b/-B/-c/-C,
-  # or main itself. A pathspec checkout ("--", ".", a file, "HEAD -- path")
-  # is not a switch and never replaces it, so it can never hide main.
-  case "$norm" in
-    *" -- "*) ;;
-    *)
-      sw="$(printf '%s' "$norm" | sed -nE 's/.*git[[:space:]]+(checkout|switch)[[:space:]]+(-[^[:space:]]+[[:space:]]+)*([^[:space:]-][^[:space:]]*).*/\3/p')"
-      if [ -n "$sw" ]; then
-        swflag="$(printf '%s' "$norm" | sed -nE 's/.*git[[:space:]]+(checkout|switch)[[:space:]]+(.*[[:space:]])?-(b|B|c|C)[[:space:]].*/\3/p')"
-        exists=0
-        [ -n "$repo" ] && [ -d "$repo" ] && git -C "$repo" show-ref --verify --quiet "refs/heads/$sw" && exists=1
-        if [ "$sw" = main ]; then sw_branch=main; sw_dir="$repo"
-        elif [ -n "$swflag" ]; then
-          case "$swflag" in
-            b|c) [ "$exists" = 0 ] && { sw_branch="$sw"; sw_dir="$repo"; } ;;
-            B|C) sw_branch="$sw"; sw_dir="$repo" ;;
-          esac
-        elif [ "$exists" = 1 ]; then sw_branch="$sw"; sw_dir="$repo"
-        fi
-      fi ;;
-  esac
+
+  # Raise only: "checkout main", "switch main", or a return to the previous
+  # branch ("-", "@{-1}"), which may be main, with any flags before the target.
+  if printf '%s' "$norm" | grep -qE 'git[[:space:]]+(checkout|switch)([[:space:]]+-[^[:space:]]*)*[[:space:]]+(main|-|@\{-1\})([[:space:]]|$)'; then
+    on_main_dir="$repo"
+  fi
 done < <(printf '%s\n' "$cmd" | sed -E 's/(&&|\|\||;|\|)/\n/g')
 exit 0

@@ -30,7 +30,8 @@
   Hook-backed: a PreToolUse hook on git and on the GitHub file-write tools
   denies it, with no bypass by design. The approved paths are a pull request I
   tell you to merge, or a command I run myself. Work that does not target main
-  is never blocked.
+  is not blocked by design; a form the wall cannot read is denied with a
+  reason, and the next call reads the real branch.
 - Secret values NEVER printed, pasted, or written to any chat, log, or
   cloud-bound file; redact tokens and keyed URLs. Never put a secret as a
   literal on a command line that lands in shell history.

@@ -7,7 +7,7 @@ hooks that enforce the rules prose alone cannot.
 |---|---|
 | `CLAUDE.md` | The doctrine. Loaded into every session as `~/.claude/CLAUDE.md`. |
 | `settings.json` | Hooks block installed into `~/.claude/settings.json`. Wires each wall so a missing script denies the call instead of allowing it. |
-| `hooks/deny-founder-gates.sh` | Denies a commit on `main`, a push whose refspec names `main`, a push from `main`, `push --all` and `push --mirror`, and the GitHub file-write tools when their branch is `main`. Work that does not target `main` is never blocked. A local merge, rebase or cherry-pick onto `main` is not walled; the push that would carry it is. Fails closed on a parse failure, a missing script, or a script that crashes. |
+| `hooks/deny-founder-gates.sh` | Denies, on `main`: a commit, a merge, cherry-pick, revert, rebase or applied patch, and a bare push; anywhere: a push whose refspec names `main`, `push --all`, `push --mirror`, and the GitHub file-write tools when their branch is `main`. The branch rule is one-way: a `git checkout main` earlier in the same command counts as `main`, and nothing inside one command can argue the wall off `main`; a switch away is honored by the next call. Work that does not target `main` is not blocked by design; a form the wall cannot read is denied with a reason. Fails closed on a parse failure, a missing script, or a script that crashes. |
 | `hooks/deny-brain-write.sh` | Denies the Open Brain write tools. |
 
 **Why hooks.** Claude Code treats `CLAUDE.md` as context, not enforcement. To block
