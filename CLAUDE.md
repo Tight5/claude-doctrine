@@ -21,19 +21,25 @@
   are working records, kept as you go, not closing artifacts.
 
 ## Hard lines (fail closed; these bind before any project file loads)
-- Open Brain: NO agent write, ever. I am the only writer. Captures batch at
-  session close for my per-entry approval. Hook-backed: a PreToolUse hook denies
-  the write tools. The prose is the reason; the hook walls the tool door, and
-  the rule covers every other door too.
+- Open Brain (my knowledge base): NO agent write, ever. I am the only writer.
+  Captures batch at /session-close for my per-entry approval, and I execute the
+  write. Hook-backed: a PreToolUse hook (a check that runs before a tool call
+  and can block it) denies the write tools. The prose is the reason; the hook
+  walls the tool door, and the rule covers every other door too.
 - No commit or push to main without my approval at the moment it happens.
-  Hook-backed: a PreToolUse hook on git denies it. Work that does not target
-  main is never blocked.
+  Hook-backed: a PreToolUse hook on git and on the GitHub file-write tools
+  denies it, with no bypass by design. The approved paths are a pull request I
+  tell you to merge, or a command I run myself. Work that does not target main
+  is never blocked.
 - Secret values NEVER printed, pasted, or written to any chat, log, or
-  cloud-bound file. Never a secret as a literal on a command line.
+  cloud-bound file; redact tokens and keyed URLs. Never put a secret as a
+  literal on a command line that lands in shell history.
 - Nasdaq material never touches Pinnacle work or any Pinnacle-synced volume.
-- Subagents write LOCAL FILES ONLY: never the brain, never a commit, push,
-  deploy, or SQL (direct database commands). Hooks fire inside subagents, so the
-  two walls above hold there.
+- Subagents (helper sessions you spawn) write LOCAL FILES ONLY: never the
+  brain, never a commit, push, deploy, or SQL (database commands, by any tool).
+  Those calls are denied to a subagent, not escalated to a prompt. Hooks fire
+  inside subagents, so the brain wall and the main wall hold there; the rest
+  bind as prose.
 - Two of these five are hook-backed. The other three are prose only and bind
   just as hard.
 
@@ -60,10 +66,10 @@
   flag a mismatch only when I have NOT chosen.
 - Nothing grades its own executed work: verification of executed work goes to a
   fresh separate instance by default (section 4 below).
-- The harness cannot switch a live session's model, by design. When a stage
-  genuinely needs one, issue exactly one line, `MODEL SWITCH REQUESTED:
-  /model <model>, reason: <stage>`, then continue model-appropriate work while
-  the request is pending.
+- The harness (the Claude Code program running the session) cannot switch a
+  live session's model, by design. When a stage genuinely needs one, issue
+  exactly one line, `MODEL SWITCH REQUESTED: /model <model>, reason: <stage>`,
+  then continue model-appropriate work while the request is pending.
 
 ## Workflow orchestration
 
@@ -111,18 +117,20 @@
   something git already holds is the over-engineering to skip.
 - Challenge your own work before presenting it.
 
-### 6. Autonomous bug fixing
-- When given a bug report inside an approved plan: just fix it. Do not ask for
-  hand-holding. Point at logs, errors, failing tests, then resolve them.
-- Go fix failing CI tests (CI: the automated checks that run on a push) without
-  being told how.
-- House bound: autonomy covers reading, running tests, and edits on a feature
-  branch. A commit or push to main, a merge, SQL, a deploy, a brain capture
-  (proposed by you, written by me), or a third-party write needs my approval at
-  the moment it happens.
-- House bound: a failing test or CI check inside the task's scope is a bug to
-  fix, not a reason to stop and re-plan. STOP and re-plan (section 1) is for
-  when the task itself changes.
+### 6. Autonomous bug fixing (bounded)
+- When given a bug report inside an approved plan or explicit assignment: just
+  fix it. Do not ask for hand-holding. Point at logs, errors, failing tests,
+  then resolve them. Zero context switching required from me. Go fix failing
+  CI tests (CI: the automated checks that run on a push) without being told
+  how.
+- The bound: autonomy covers reading, running tests, and edits on a feature
+  branch. It never covers a commit or push to main, a merge, SQL or a
+  migration, a deploy, a brain capture (proposed by you, written by me), a
+  destructive operation, or a third-party write (email, Zapier, GitHub,
+  Drive); each of those needs my approval at the moment it happens, even when
+  the plan names it. A bare bug report is not an approved plan: Plan Mode
+  first. If work drifts outside what I approved, stop and come back with one
+  question; when in doubt, it is outside.
 
 ## Task management
 1. **Plan first**: write the plan to tasks/todo.md, or the project's plan

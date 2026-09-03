@@ -1,25 +1,41 @@
 #!/bin/bash
-# PreToolUse hook, matcher "Bash". Enforces the founder hard line: no commit or
-# push to main without his approval at the moment it happens. Work that does not
-# target main is never blocked. Fires inside subagents too. Must stay instant: a
-# hook that hits its timeout renders no decision, which would fail open. A parse
-# failure fails closed: the hook denies and says why; it never allows in silence.
+# PreToolUse hook. Enforces the founder hard line: no commit or push to main
+# without his approval at the moment it happens. Wired to the Bash tool and to
+# the GitHub file-write tools (push_files, create_or_update_file, delete_file).
+# Work that does not target main is never blocked. Fires inside subagents too.
+# Must stay instant: a hook that hits its timeout renders no decision, which
+# would fail open. A parse failure fails closed: the hook denies and says why;
+# it never allows in silence.
 set -u
 input="$(cat)"
 
 deny() { echo "DENIED by founder doctrine: $1" >&2; exit 2; }
-GUIDE="Main takes founder approval at the moment it happens. Work on a feature branch and open a PR."
+GUIDE="Main takes founder approval at the moment it happens: a pull request he tells you to merge, or a command he runs himself. Work on a feature branch and open a PR."
 
-# The command and cwd: jq when present, else a sed extraction of the JSON fields.
+# Fields: jq when present, else a sed extraction of the JSON string fields.
 if command -v jq >/dev/null 2>&1; then
-  cmd="$(printf '%s' "$input" | jq -r '.tool_input.command // empty' 2>/dev/null)"
-  cwd="$(printf '%s' "$input" | jq -r '.cwd // empty' 2>/dev/null)"
+  field() { printf '%s' "$input" | jq -r "$1 // empty" 2>/dev/null; }
+  tool="$(field '.tool_name')"; cmd="$(field '.tool_input.command')"
+  cwd="$(field '.cwd')";        br="$(field '.tool_input.branch')"
 else
-  unesc() { sed -e 's/\\"/"/g' -e 's/\\n/ /g' -e 's/\\\\/\\/g'; }
-  cmd="$(printf '%s' "$input" | sed -nE 's/.*"command":[[:space:]]*"((\\.|[^"\\])*)".*/\1/p' | head -1 | unesc)"
-  cwd="$(printf '%s' "$input" | sed -nE 's/.*"cwd":[[:space:]]*"((\\.|[^"\\])*)".*/\1/p' | head -1 | unesc)"
+  field() { printf '%s' "$input" | sed -nE "s/.*\"$1\":[[:space:]]*\"((\\\\.|[^\"\\\\])*)\".*/\\1/p" | head -1 | sed -e 's/\\"/"/g' -e 's/\\n/ /g' -e 's/\\\\/\\/g'; }
+  tool="$(field tool_name)"; cmd="$(field command)"; cwd="$(field cwd)"; br="$(field branch)"
 fi
-[ -z "$input" ] && deny "this hook received no input, so it cannot check the command (fail closed)."
+[ -z "$input" ] && deny "this hook received no input, so it cannot check the call (fail closed)."
+
+# GitHub file-write tools: the branch named in the call decides.
+case "$tool" in
+  mcp__github__push_files|mcp__github__create_or_update_file|mcp__github__delete_file)
+    case "$br" in
+      "") deny "$tool names no branch, so the target cannot be checked (fail closed). $GUIDE" ;;
+      main|refs/heads/main) deny "$tool targeting main. $GUIDE" ;;
+    esac
+    exit 0 ;;
+  Bash|"") ;;
+  *) deny "this wall is wired to a tool it does not know ($tool): the settings matcher and this script disagree (fail closed)." ;;
+esac
+
+# Bash: the command decides.
 [ -z "$cmd" ] && deny "this hook could not read the command from its input (fail closed)."
 case "$cmd" in *git*) ;; *) exit 0 ;; esac
 

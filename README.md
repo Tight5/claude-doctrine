@@ -6,15 +6,19 @@ hooks that enforce the rules prose alone cannot.
 | File | What it is |
 |---|---|
 | `CLAUDE.md` | The doctrine. Loaded into every session as `~/.claude/CLAUDE.md`. |
-| `settings.json` | Hooks block installed into `~/.claude/settings.json`. |
-| `hooks/deny-founder-gates.sh` | Denies any commit or push to `main`. Work that does not target `main` is never blocked. Fails closed on a parse failure. |
+| `settings.json` | Hooks block installed into `~/.claude/settings.json`. Wires each wall so a missing script denies the call instead of allowing it. |
+| `hooks/deny-founder-gates.sh` | Denies a commit on `main` and any push, `git` or GitHub file-write tool, that targets `main`. Work that does not target `main` is never blocked. Fails closed on a parse failure. |
 | `hooks/deny-brain-write.sh` | Denies the Open Brain write tools. |
 
 **Why hooks.** Claude Code treats `CLAUDE.md` as context, not enforcement. To block
 an action regardless of what the model decides, the docs say to use a hook. The
 two hard lines that matter most are hooks here; the prose states the reason, the
 hook is the wall. The other three hard lines are prose only. Hooks fire inside
-subagents as well, so the walls hold there.
+subagents as well, so the walls hold there. The walls have no bypass by design:
+the approved paths to `main` are a pull request the founder tells the session
+to merge, or a command he runs himself. A container that could not fetch the
+scripts has no wall until it does; the session-start hook says so out loud and
+never installs the settings without the scripts they call.
 
 **Why this repo is public.** A Claude Code cloud container starts with an empty
 `~/.claude/`, and its network proxy reaches only the repositories attached to
