@@ -1,10 +1,3 @@
-<!-- The fetchable mirror of Clint Phillips's global Claude Code operating rules.
-     PUBLIC so any session, on any machine or in any cloud container, can read it at
-     startup without credentials. Editing master: SparrowBrain/config/global-CLAUDE.md,
-     deployed to ~/.claude/CLAUDE.md by config/sync.sh. Do not hand-edit this mirror;
-     change the master and re-publish. Approved 2026-09-02, supersedes v3.0. -->
-
-
 # CLAUDE.md
 
 ## How to work with me
