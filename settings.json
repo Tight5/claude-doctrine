@@ -1,0 +1,18 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          { "type": "command", "command": "\"$HOME\"/.claude/hooks/deny-founder-gates.sh" }
+        ]
+      },
+      {
+        "matcher": "mcp__Open_Brain__capture_thought|mcp__Open_Brain__park_note|mcp__Open_Brain__backfill_canonical_embeddings",
+        "hooks": [
+          { "type": "command", "command": "\"$HOME\"/.claude/hooks/deny-brain-write.sh" }
+        ]
+      }
+    ]
+  }
+}
