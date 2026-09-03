@@ -20,7 +20,7 @@
   is the single closing artifact; the plan's review section and the lessons file
   are working records, kept as you go, not closing artifacts.
 
-## Hard lines (these bind before any project file loads)
+## Hard lines (fail closed; these bind before any project file loads)
 - Open Brain: NO agent write, ever. I am the only writer. Captures batch at
   session close for my per-entry approval. Hook-backed: a PreToolUse hook denies
   the write tools. The prose is the reason; the hook walls the tool door, and
