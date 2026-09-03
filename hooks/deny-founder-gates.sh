@@ -78,7 +78,27 @@ while IFS= read -r seg; do
     printf '%s' "$norm" | grep -qE 'git[[:space:]]+commit([[:space:]]|$)' && deny "commit on main. $GUIDE"
     printf '%s' "$norm" | grep -qE 'git[[:space:]]+push([[:space:]]|$)' && deny "push from main. $GUIDE"
   fi
-  sw="$(printf '%s' "$norm" | sed -nE 's/.*git[[:space:]]+(checkout|switch)[[:space:]]+(-[^[:space:]]+[[:space:]]+)*([^[:space:]-][^[:space:]]*).*/\3/p')"
-  if [ -n "$sw" ]; then sw_branch="$sw"; sw_dir="$repo"; fi
+  # Only a real branch switch may replace the branch for later segments: a
+  # target that is an existing local branch, a new branch made by -b/-B/-c/-C,
+  # or main itself. A pathspec checkout ("--", ".", a file, "HEAD -- path")
+  # is not a switch and never replaces it, so it can never hide main.
+  case "$norm" in
+    *" -- "*) ;;
+    *)
+      sw="$(printf '%s' "$norm" | sed -nE 's/.*git[[:space:]]+(checkout|switch)[[:space:]]+(-[^[:space:]]+[[:space:]]+)*([^[:space:]-][^[:space:]]*).*/\3/p')"
+      if [ -n "$sw" ]; then
+        swflag="$(printf '%s' "$norm" | sed -nE 's/.*git[[:space:]]+(checkout|switch)[[:space:]]+(.*[[:space:]])?-(b|B|c|C)[[:space:]].*/\3/p')"
+        exists=0
+        [ -n "$repo" ] && [ -d "$repo" ] && git -C "$repo" show-ref --verify --quiet "refs/heads/$sw" && exists=1
+        if [ "$sw" = main ]; then sw_branch=main; sw_dir="$repo"
+        elif [ -n "$swflag" ]; then
+          case "$swflag" in
+            b|c) [ "$exists" = 0 ] && { sw_branch="$sw"; sw_dir="$repo"; } ;;
+            B|C) sw_branch="$sw"; sw_dir="$repo" ;;
+          esac
+        elif [ "$exists" = 1 ]; then sw_branch="$sw"; sw_dir="$repo"
+        fi
+      fi ;;
+  esac
 done < <(printf '%s\n' "$cmd" | sed -E 's/(&&|\|\||;|\|)/\n/g')
 exit 0

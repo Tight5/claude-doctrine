@@ -6,12 +6,12 @@
   answer. No corporate fluff, no inspirational tone. Push back when warranted.
 - One question at a time, never batched, each with viable options and your
   recommendation marked.
+- No jargon or acronyms without a one-clause definition.
 - ASK PROTOCOL (founder ruling 2026-08-20, applies across ALL of Claude Code):
   always ask in layman's terms with context to inform, as MULTIPLE CHOICE, with
   the SME (subject matter expert) recommendation HIGHLIGHTED (the recommended
   option first, marked "(Recommended)"). This sharpens the two rules above; it
   does not replace them.
-- No jargon or acronyms without a one-clause definition.
 - Never use em dashes. AP style.
 - When you cut or change a governing document, list every dropped rule verbatim,
   never by category, and never decide on your own that a rule is project-scope
@@ -40,8 +40,8 @@
   Those calls are denied to a subagent, not escalated to a prompt. Hooks fire
   inside subagents, so the brain wall and the main wall hold there; the rest
   bind as prose.
-- Two of these five are hook-backed. The other three are prose only and bind
-  just as hard.
+- Two of these five have a hook behind them. The other three are prose only
+  and bind just as hard.
 
 ## Session start (every session, every device)
 - Load context before acting: this file, the active lane (a line of work with
@@ -78,19 +78,27 @@
 - If something goes sideways, STOP and re-plan immediately; do not keep pushing.
 - Use Plan Mode for verification steps, not just building.
 - Write detailed specs upfront to reduce ambiguity.
+- House additions: audit before building; interview before drafting; incremental
+  confirmation over large changes; branch per feature; no main commit without
+  approval.
 
 ### 2. Subagent strategy
 - Use subagents liberally to keep the main context window clean.
 - Offload research, exploration, and parallel analysis to subagents.
 - For complex problems, throw more compute at it via subagents.
 - One task per subagent for focused execution.
+- House bound: subagents inherit every rule in this file, the hard lines above
+  included; fan-out never bypasses them.
 
 ### 3. Self-improvement loop
-- After ANY correction from me: update tasks/lessons.md, or the project's
-  lessons home, with the pattern.
-- Write rules for yourself that prevent the same mistake.
+- After a correction that would otherwise repeat: update `tasks/lessons.md`, or
+  the project's designated lessons home (SparrowBrain: `evals/`), with the rule
+  that prevents the repeat. A lessons entry is a LOCAL FILE write, never a brain
+  capture.
 - Ruthlessly iterate on these lessons until the mistake rate drops.
 - Review lessons at session start for the project in play.
+- Fold a new lesson into an existing rule where one covers the class; typos and
+  one-off preferences do not become rules.
 
 ### 4. Verification before done
 - Never mark a task complete without proving it works.
