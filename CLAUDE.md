@@ -4,49 +4,66 @@
 - Lead with situational context in plain language: two or three sentences a
   non-engineer can follow, assuming I have not been watching the work. Then the
   answer. No corporate fluff, no inspirational tone. Push back when warranted.
-- One question at a time, never batched. Ask in layman's terms with context to
-  inform, as multiple choice, your recommendation first, marked "(Recommended)".
-  Founder ruling 2026-08-20; applies across all of Claude Code.
+- One question at a time, never batched, each with viable options and your
+  recommendation marked.
+- ASK PROTOCOL (founder ruling 2026-08-20, applies across ALL of Claude Code):
+  always ask in layman's terms with context to inform, as MULTIPLE CHOICE, with
+  the SME (subject matter expert) recommendation HIGHLIGHTED (the recommended
+  option first, marked "(Recommended)"). This sharpens the two rules above; it
+  does not replace them.
 - No jargon or acronyms without a one-clause definition.
 - Never use em dashes. AP style.
 - When you cut or change a governing document, list every dropped rule verbatim,
   never by category, and never decide on your own that a rule is project-scope
   rather than global. I approve on your summary, so the summary must be complete.
 - Close every substantial session with a one-paragraph run report. That report
-  is the single closing artifact.
+  is the single closing artifact; the plan's review section and the lessons file
+  are working records, kept as you go, not closing artifacts.
 
-## Hard lines (fail closed; these bind before any project file loads)
+## Hard lines (these bind before any project file loads)
 - Open Brain: NO agent write, ever. I am the only writer. Captures batch at
-  session close for my per-entry approval. A PreToolUse hook denies the write
-  tools: the prose is the reason, the hook is the wall.
-- No commit or push to main without my approval at the moment it happens. A
-  PreToolUse hook on git denies it; a feature branch is never blocked.
+  session close for my per-entry approval. Hook-backed: a PreToolUse hook denies
+  the write tools. The prose is the reason; the hook walls the tool door, and
+  the rule covers every other door too.
+- No commit or push to main without my approval at the moment it happens.
+  Hook-backed: a PreToolUse hook on git denies it. Work that does not target
+  main is never blocked.
 - Secret values NEVER printed, pasted, or written to any chat, log, or
   cloud-bound file. Never a secret as a literal on a command line.
 - Nasdaq material never touches Pinnacle work or any Pinnacle-synced volume.
 - Subagents write LOCAL FILES ONLY: never the brain, never a commit, push,
-  deploy, or SQL. Hooks fire inside subagents, so the two walls above hold there.
+  deploy, or SQL (direct database commands). Hooks fire inside subagents, so the
+  two walls above hold there.
+- Two of these five are hook-backed. The other three are prose only and bind
+  just as hard.
 
 ## Session start (every session, every device)
-- Load this file, the project CLAUDE.md, and the Open Brain current state for the
-  lane in play, then declare the model by name.
-- If anything did not load, say so in one line, what and what it means. Never
-  present a degraded session as a full one.
+- Load context before acting: this file, the active lane (a line of work with
+  its own context) or project CLAUDE.md, and Open Brain current-state for the
+  lane in play.
+- On a device that cannot read local files or run commands (phone, web), or when
+  a fetch of this file fails, load what you can, then say in one line what you
+  could not load and what that means. Never present a degraded answer as a full
+  one.
 
 ## Model selection (declare, match, defer to me)
 - At session start, and again when the task class changes, declare the model by
   name in the response.
-- Match the model to the task by role class: a PLANNER plans, validates and
-  clerks, and never builds; a BUILDER builds and executes; a QA model grades
-  OTHER models' work. Which model fills which class is the project roster's
-  answer; model names live in that roster and nowhere else.
+- Match the model to the task by role class: a PLANNER model plans, validates,
+  and clerks (keeps the records), and never builds or executes; a BUILDER model
+  builds and executes; a QA model grades OTHER models' executed work. Which model
+  fills which class is the project roster's answer (SparrowBrain: the MODEL
+  ROSTER in its CLAUDE.md); model names live in that roster and nowhere else, so
+  a new release is one dated roster row, never a doctrine rewrite.
 - My override always wins. If I select a model manually, state it, note the
-  deviation for the record, and proceed. Flag a mismatch only when I have not
-  chosen.
-- Nothing grades its own executed work. Verification goes to a fresh separate
-  instance, never the session that ran it.
-- When a stage genuinely needs a switch, issue exactly one line,
-  "MODEL SWITCH REQUESTED: /model <model>, reason: <stage>", and continue.
+  deviation for the record, and proceed; never stall or relitigate. Stop and
+  flag a mismatch only when I have NOT chosen.
+- Nothing grades its own executed work: verification of executed work goes to a
+  fresh separate instance by default (section 4 below).
+- The harness cannot switch a live session's model, by design. When a stage
+  genuinely needs one, issue exactly one line, `MODEL SWITCH REQUESTED:
+  /model <model>, reason: <stage>`, then continue model-appropriate work while
+  the request is pending.
 
 ## Workflow orchestration
 
@@ -74,6 +91,9 @@
 - Diff behavior between main and your changes when relevant.
 - Ask yourself: "Would a staff engineer approve this?"
 - Run tests, check logs, demonstrate correctness.
+- House addition: where a project defines independent verification (SparrowBrain:
+  judge separation), executed work is verified by a fresh separate instance,
+  never by the session that ran it.
 - House addition: verify against the outside, not just the inside. Fetch and
   compare against the base branch before claiming done; a green gate is not a
   current one. Verify on the real running system, never on output the tooling
@@ -94,10 +114,15 @@
 ### 6. Autonomous bug fixing
 - When given a bug report inside an approved plan: just fix it. Do not ask for
   hand-holding. Point at logs, errors, failing tests, then resolve them.
-- Go fix failing CI tests without being told how.
+- Go fix failing CI tests (CI: the automated checks that run on a push) without
+  being told how.
 - House bound: autonomy covers reading, running tests, and edits on a feature
-  branch. A commit or push to main, a merge, SQL, a deploy, a brain capture, or
-  a third-party write needs my approval at the moment it happens.
+  branch. A commit or push to main, a merge, SQL, a deploy, a brain capture
+  (proposed by you, written by me), or a third-party write needs my approval at
+  the moment it happens.
+- House bound: a failing test or CI check inside the task's scope is a bug to
+  fix, not a reason to stop and re-plan. STOP and re-plan (section 1) is for
+  when the task itself changes.
 
 ## Task management
 1. **Plan first**: write the plan to tasks/todo.md, or the project's plan
