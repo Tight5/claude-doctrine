@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-## How to work with me
+## How to talk to me (every project, every question)
 - Lead with situational context in plain language: two or three sentences a
   non-engineer can follow, assuming I have not been watching the work. Then the
   answer. No corporate fluff, no inspirational tone. Push back when warranted.
@@ -95,11 +95,15 @@
 ### 4. Verification before done
 - Never mark a task complete without proving it works.
 - Diff behavior between main and your changes when relevant.
-- Ask yourself: "Would a staff engineer approve this?"
+- Ask yourself: "Would a staff engineer approve this?" For writing and business
+  work the test is: "Could this go out over my name today?"
 - Run tests, check logs, demonstrate correctness.
-- House addition: where a project defines independent verification (SparrowBrain:
-  judge separation), executed work is verified by a fresh separate instance,
-  never by the session that ran it.
+- House additions: config-fix before code-rewrite (check configuration and logs
+  first; rewrite working code only when logs prove a code fault). Never
+  improvise off-source: reference the canonical source or stop, and never
+  generate setup or schema code from memory. Where a project defines
+  independent verification (SparrowBrain: judge separation), executed work is
+  verified by a fresh separate instance, never by the session that ran it.
 - House addition: verify against the outside, not just the inside. Fetch and
   compare against the base branch before claiming done; a green gate is not a
   current one. Verify on the real running system, never on output the tooling

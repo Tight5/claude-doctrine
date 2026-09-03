@@ -7,7 +7,7 @@ hooks that enforce the rules prose alone cannot.
 |---|---|
 | `CLAUDE.md` | The doctrine. Loaded into every session as `~/.claude/CLAUDE.md`. |
 | `settings.json` | Hooks block installed into `~/.claude/settings.json`. Wires each wall so a missing script denies the call instead of allowing it. |
-| `hooks/deny-founder-gates.sh` | Denies a commit on `main` and any push, `git` or GitHub file-write tool, that targets `main`. Work that does not target `main` is never blocked. Fails closed on a parse failure. |
+| `hooks/deny-founder-gates.sh` | Denies a commit on `main`, a push whose refspec names `main`, a push from `main`, `push --all` and `push --mirror`, and the GitHub file-write tools when their branch is `main`. Work that does not target `main` is never blocked. Fails closed on a parse failure, a missing script, or a script that crashes. |
 | `hooks/deny-brain-write.sh` | Denies the Open Brain write tools. |
 
 **Why hooks.** Claude Code treats `CLAUDE.md` as context, not enforcement. To block

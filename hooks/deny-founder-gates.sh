@@ -41,7 +41,7 @@ case "$cmd" in *git*) ;; *) exit 0 ;; esac
 
 # Walk the command one shell segment at a time (split on newlines ; && || and |),
 # tracking a leading "cd <dir>" so a later git segment is checked in that repo.
-dir="$cwd"
+dir="$cwd"; sw_branch=""; sw_dir=""
 while IFS= read -r seg; do
   cdto="$(printf '%s' "$seg" | sed -nE 's/^[[:space:]]*cd[[:space:]]+([^[:space:]]+).*/\1/p')"
   if [ -n "$cdto" ]; then
@@ -59,17 +59,26 @@ while IFS= read -r seg; do
   # Explicit: any push whose destination is main, in any refspec form.
   printf '%s' "$norm" | grep -qE 'git[[:space:]]+push[^;&|]*[[:space:]][+]?([^[:space:]:]+:)?(refs/heads/)?main([[:space:]]|$)' && deny "push targeting main. $GUIDE"
   printf '%s' "$norm" | grep -qE 'git[[:space:]]+push[^;&|]*[[:space:]]:(refs/heads/)?main([[:space:]]|$)' && deny "deleting main. $GUIDE"
+  printf '%s' "$norm" | grep -qE 'git[[:space:]]+push([[:space:]][^;&|]*)?[[:space:]]--(all|mirror)([[:space:]]|$)' && deny "push --all or --mirror reaches main. $GUIDE"
 
   # Implicit: a commit, or a bare push, while HEAD is main in the repository the
   # segment acts on: the git -C <dir> if given, else the tracked directory.
   repo="$(printf '%s' "$seg" | sed -nE 's/.*git[[:space:]]+(-[^C][^[:space:]]*[[:space:]]+([^-][^[:space:]]*[[:space:]]+)?)*-C[[:space:]]*([^[:space:]]+).*/\3/p')"
   repo="${repo//\"/}"; repo="${repo//\'/}"; repo="${repo/#\~/$HOME}"
   case "$repo" in "") repo="$dir" ;; /*) ;; *) repo="$dir/$repo" ;; esac
+  # The live branch is read before the command runs, so a checkout or switch
+  # earlier in the same command overrides it for the later segments in that repo.
   branch=""
-  [ -n "$repo" ] && [ -d "$repo" ] && branch="$(git -C "$repo" rev-parse --abbrev-ref HEAD 2>/dev/null || true)"
+  if [ -n "$sw_branch" ] && [ "$repo" = "$sw_dir" ]; then
+    branch="$sw_branch"
+  elif [ -n "$repo" ] && [ -d "$repo" ]; then
+    branch="$(git -C "$repo" rev-parse --abbrev-ref HEAD 2>/dev/null || true)"
+  fi
   if [ "$branch" = "main" ]; then
     printf '%s' "$norm" | grep -qE 'git[[:space:]]+commit([[:space:]]|$)' && deny "commit on main. $GUIDE"
     printf '%s' "$norm" | grep -qE 'git[[:space:]]+push([[:space:]]|$)' && deny "push from main. $GUIDE"
   fi
+  sw="$(printf '%s' "$norm" | sed -nE 's/.*git[[:space:]]+(checkout|switch)[[:space:]]+(-[^[:space:]]+[[:space:]]+)*([^[:space:]-][^[:space:]]*).*/\3/p')"
+  if [ -n "$sw" ]; then sw_branch="$sw"; sw_dir="$repo"; fi
 done < <(printf '%s\n' "$cmd" | sed -E 's/(&&|\|\||;|\|)/\n/g')
 exit 0
