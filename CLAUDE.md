@@ -24,10 +24,11 @@
 - Open Brain (my knowledge base): no agent write outside my gate. A write is
   GATED ON MY WORD PER RECORD, NOT FORBIDDEN: I read the record in the exact
   words it will carry, give my word on that specific record, you execute the
-  write and show read-back proof. Per record, never per batch, never on
-  standing authority (founder ruling 2026-09-01, superseding "NO agent write,
+  write, show read-back proof, and write the capture id back into the
+  repository as it lands. Per record, never per batch, never on standing
+  authority (founder ruling 2026-09-01, superseding "NO agent write,
   ever"). Hook-backed: a PreToolUse hook (a check that runs before a tool call
-  and can block it) turns every brain write into a prompt that shows me the
+  and can block it) turns my brain writes into a prompt that shows me the
   exact text, and denies by itself where it cannot prompt. The prose is the
   reason; the hook walls the tool door, and the rule covers every other door
   too.

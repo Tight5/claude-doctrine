@@ -8,18 +8,18 @@
 # to a subagent, not escalated to a prompt. Fires inside subagents too.
 set -u
 input="$(cat)"
-[ -z "$input" ] && { echo "DENIED by founder doctrine: this hook received no input, so it cannot check the call (fail closed)." >&2; exit 2; }
+deny() { echo "DENIED by founder doctrine: $1" >&2; exit 2; }
+case "$input" in *[![:space:]]*) ;; *) deny "this hook received no input, so it cannot check the call (fail closed)." ;; esac
 if command -v jq >/dev/null 2>&1; then
-  agent="$(printf '%s' "$input" | jq -r '.agent_id // empty' 2>/dev/null)"
+  agent="$(printf '%s' "$input" | jq -r '.agent_id // empty | tostring' 2>/dev/null)"
   tool="$(printf '%s' "$input" | jq -r '.tool_name // empty' 2>/dev/null)"
 else
-  agent="$(printf '%s' "$input" | sed -nE 's/.*"agent_id":[[:space:]]*"([^"]*)".*/\1/p' | head -1)"
+  agent="$(printf '%s' "$input" | sed -nE 's/.*"agent_id":[[:space:]]*("([^"]*)"|([^,}[:space:]]*)).*/\2\3/p' | head -1)"
+  [ "$agent" = null ] && agent=""
   tool="$(printf '%s' "$input" | sed -nE 's/.*"tool_name":[[:space:]]*"([^"]*)".*/\1/p' | head -1)"
 fi
-if [ -n "$agent" ]; then
-  echo "DENIED by founder doctrine: a subagent never writes to Open Brain. Those calls are denied to a subagent, not escalated to a prompt. Hand the record to the main session for the founder's word." >&2
-  exit 2
-fi
+[ -z "$tool" ] && deny "this hook could not read the tool name from its input, so it cannot tell a main-session write from a subagent's (fail closed)."
+[ -n "$agent" ] && deny "a subagent never writes to Open Brain. Those calls are denied to a subagent, not escalated to a prompt. Hand the record to the main session for the founder's word."
 reason="FOUNDER GATE, per record: ${tool:-this Open Brain write} carries the text shown here. Approve only if you have read it in the exact words it will carry and give your word on this record; the lead then shows read-back proof. Never per batch, never on standing authority."
 if command -v jq >/dev/null 2>&1; then
   jq -cn --arg r "$reason" '{hookSpecificOutput:{hookEventName:"PreToolUse",permissionDecision:"ask",permissionDecisionReason:$r}}'
