@@ -8,7 +8,7 @@
         ]
       },
       {
-        "matcher": "^(mcp__Open_Brain__capture_thought|mcp__Open_Brain__park_note|mcp__Open_Brain__backfill_canonical_embeddings)$",
+        "matcher": "^mcp__.*__(capture_thought|park_note|backfill_canonical_embeddings|execute_sql|apply_migration|deploy_edge_function)$",
         "hooks": [
           { "type": "command", "command": "h=\"$HOME\"/.claude/hooks/deny-brain-write.sh; if [ -x \"$h\" ]; then \"$h\"; rc=$?; [ $rc -eq 0 ] || [ $rc -eq 2 ] || { echo \"DENIED by founder doctrine: wall script $h failed with exit $rc (fail closed). Reinstall the doctrine.\" >&2; rc=2; }; exit $rc; fi; echo \"DENIED by founder doctrine: wall script $h is missing, so this call cannot be checked (fail closed). Reinstall the doctrine.\" >&2; exit 2" }
         ]

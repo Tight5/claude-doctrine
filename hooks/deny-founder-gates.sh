@@ -47,10 +47,21 @@ case "$cmd" in *git*) ;; *) exit 0 ;; esac
 # Read the WHOLE command as shell tokens in pure bash: quotes and backslashes
 # honored, nothing expanded or executed. Segment separators (; & | newline
 # ( ) and an unquoted # comment) are emitted as SEP, so a separator inside a
-# quoted commit message is just text. Returns 1 on unbalanced quoting.
+# quoted commit message is just text.
+#
+# A heredoc body is DATA, not command structure: the shell hands it to the
+# command and never parses it. So "<<EOF", "<<-EOF", "<<'EOF'" and the quoted
+# forms park their delimiter, and at the next real newline the body is skipped
+# whole, up to and including its terminator line. Without that, an apostrophe
+# in a heredoc body ("the founder's word", any prose, most Python) reads as an
+# unbalanced quote and fails the whole command closed. A herestring, "<<<", is
+# not a heredoc and is left alone.
+#
+# Returns 1 on unbalanced quoting.
 SEP=$'\001'
 tokenize_all() {
   local s="$1"; local n=${#s}; local i=0; local c q="" cur="" have=0
+  local hd=() j k ls line ch dq d
   TOK=()
   while [ $i -lt $n ]; do
     c="${s:i:1}"
@@ -64,15 +75,56 @@ tokenize_all() {
       case "$c" in
         "'"|'"') q="$c"; have=1 ;;
         '\') i=$((i+1)); c="${s:i:1}"; if [ "$c" != $'\n' ]; then cur+="$c"; have=1; fi ;;
+        '<')
+          if [ "${s:$((i+1)):1}" = '<' ] && [ "${s:$((i+2)):1}" != '<' ]; then
+            j=$((i+2))
+            [ "${s:j:1}" = '-' ] && j=$((j+1))
+            while [ "${s:j:1}" = ' ' ] || [ "${s:j:1}" = $'\t' ]; do j=$((j+1)); done
+            dq=""
+            case "${s:j:1}" in "'"|'"') dq="${s:j:1}"; j=$((j+1)) ;; esac
+            d=""
+            while [ $j -lt $n ]; do
+              ch="${s:j:1}"
+              if [ -n "$dq" ]; then
+                [ "$ch" = "$dq" ] && { j=$((j+1)); break; }
+                d+="$ch"
+              else
+                case "$ch" in ' '|$'\t'|$'\n'|';'|'&'|'|'|'('|')') break ;; esac
+                d+="$ch"
+              fi
+              j=$((j+1))
+            done
+            [ -n "$d" ] && hd+=("$d")
+            if [ "$have" = 1 ]; then TOK+=("$cur"); cur=""; have=0; fi
+            i=$((j-1))
+          else
+            cur+="$c"; have=1
+          fi ;;
         ' '|$'\t') if [ "$have" = 1 ]; then TOK+=("$cur"); cur=""; have=0; fi ;;
         ';'|'&'|'|'|$'\n'|'('|')')
           if [ "$have" = 1 ]; then TOK+=("$cur"); cur=""; have=0; fi
-          TOK+=("$SEP") ;;
+          TOK+=("$SEP")
+          if [ "$c" = $'\n' ] && [ ${#hd[@]} -gt 0 ]; then
+            k=$((i+1))
+            for d in "${hd[@]}"; do
+              while [ $k -lt $n ]; do
+                ls=$k
+                while [ $k -lt $n ] && [ "${s:k:1}" != $'\n' ]; do k=$((k+1)); done
+                line="${s:ls:$((k-ls))}"
+                line="${line#"${line%%[![:space:]]*}"}"
+                line="${line%"${line##*[![:space:]]}"}"
+                k=$((k+1))
+                [ "$line" = "$d" ] && break
+              done
+            done
+            hd=()
+            i=$((k-1))
+          fi ;;
         '#')
           if [ "$have" = 1 ]; then cur+="$c"
           else
             while [ $i -lt $n ] && [ "${s:i:1}" != $'\n' ]; do i=$((i+1)); done
-            TOK+=("$SEP")
+            i=$((i-1))
           fi ;;
         *) cur+="$c"; have=1 ;;
       esac

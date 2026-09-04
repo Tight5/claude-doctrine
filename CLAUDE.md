@@ -29,9 +29,13 @@
   authority (founder ruling 2026-09-01, superseding "NO agent write,
   ever"). Hook-backed: a PreToolUse hook (a check that runs before a tool call
   and can block it) turns my brain writes into a prompt that shows me the
-  exact text, and denies by itself where it cannot prompt. The prose is the
-  reason; the hook walls the tool door, and the rule covers every other door
-  too.
+  exact text, and denies by itself where it cannot prompt. It covers the
+  database door too, since the brain lives in a Supabase store and a SQL
+  command, a migration or an edge-function deploy reaches it without touching
+  a capture tool; every such call is gated, reads included, because
+  classifying SQL by its text is how a wall gets fooled. The prose is the
+  reason; the hook walls those doors, and the rule covers any door it does not
+  know about.
 - No commit or push to main without my approval at the moment it happens.
   Hook-backed: a PreToolUse hook on git and on the GitHub file-write tools
   denies it, with no bypass by design. The approved paths are a pull request I
