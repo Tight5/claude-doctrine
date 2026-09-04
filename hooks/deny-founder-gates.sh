@@ -2,8 +2,10 @@
 # PreToolUse hook. Enforces the founder hard line: no commit or push to main
 # without his approval at the moment it happens. Wired to the Bash tool and to
 # the GitHub file-write tools (push_files, create_or_update_file, delete_file).
-# Work that does not target main is not blocked by design; a form the wall
-# cannot read is denied with a reason. Fires inside subagents too.
+# On main it also denies a merge, rebase, cherry-pick, revert, am, and a pull
+# that is not --ff-only, since each is a commit on main. Work that does not
+# target main is not blocked by design; a form the wall cannot read is denied
+# with a reason. Fires inside subagents too.
 # Must stay instant: a hook that hits its timeout renders no decision, which
 # would fail open. A parse failure fails closed: the hook denies and says why;
 # it never allows in silence.
@@ -78,6 +80,7 @@ while IFS= read -r seg; do
     esac
     continue
   fi
+  if printf '%s' "$seg" | grep -qE '^((ba|z)?sh[[:space:]]+-[a-z]*c|eval)([[:space:]]|$)'; then dir=""; dir_unknown=1; fi
   case "$seg" in *git*) ;; *) continue ;; esac
 
   # Strip git's global options (-C <dir>, -c k=v, --git-dir=, --work-tree=,
@@ -89,12 +92,16 @@ while IFS= read -r seg; do
   printf '%s' "$norm" | grep -qE 'git[[:space:]]+push[^;&|]*[[:space:]][+]?([^[:space:]:]+:)?(refs/heads/)?main([[:space:]]|$)' && deny "push targeting main. $GUIDE"
   printf '%s' "$norm" | grep -qE 'git[[:space:]]+push[^;&|]*[[:space:]]:(refs/heads/)?main([[:space:]]|$)' && deny "deleting main. $GUIDE"
   printf '%s' "$norm" | grep -qE 'git[[:space:]]+push([[:space:]][^;&|]*)?[[:space:]]--(all|mirror)([[:space:]]|$)' && deny "push --all or --mirror reaches main. $GUIDE"
+  printf '%s' "$norm" | grep -qE 'git[[:space:]]+branch[[:space:]]+(-[^[:space:]]*[[:space:]]+)*(-f|--force|-M|-m)[[:space:]]+([^[:space:]]+[[:space:]]+)?main([[:space:]]|$)' && deny "moving main with git branch. $GUIDE"
+  printf '%s' "$norm" | grep -qE 'git[[:space:]]+update-ref[[:space:]]+(-[^[:space:]]*[[:space:]]+)*refs/heads/main([[:space:]]|$)' && deny "moving main with git update-ref. $GUIDE"
 
   # The repository this segment acts on: -C <dir>, else --work-tree, else
   # --git-dir, else the tracked directory. Then its real top-level path.
   repo="$(printf '%s' "$seg" | sed -nE 's/.*git[[:space:]]+(-[^C][^[:space:]]*[[:space:]]+([^-][^[:space:]]*[[:space:]]+)?)*-C[[:space:]]*([^[:space:]]+).*/\3/p')"
   [ -z "$repo" ] && repo="$(printf '%s' "$seg" | sed -nE 's/.*--work-tree[= ]([^[:space:]]+).*/\1/p')"
   [ -z "$repo" ] && repo="$(printf '%s' "$seg" | sed -nE 's/.*--git-dir[= ]([^[:space:]]+).*/\1/p' | sed -E 's#/?\.git/?$##')"
+  [ -z "$repo" ] && repo="$(printf '%s' "$seg" | sed -nE 's/.*GIT_WORK_TREE=([^[:space:]]+).*/\1/p')"
+  [ -z "$repo" ] && repo="$(printf '%s' "$seg" | sed -nE 's/.*GIT_DIR=([^[:space:]]+).*/\1/p' | sed -E 's#/?\.git/?$##')"
   repo="${repo//\"/}"; repo="${repo//\'/}"; repo="${repo/#\~/$HOME}"
   case "$repo" in
     "") repo="$dir" ;;
@@ -103,7 +110,8 @@ while IFS= read -r seg; do
     *) if [ "$dir_unknown" = 1 ]; then repo=""; else repo="$dir/$repo"; fi ;;
   esac
   guarded=0
-  printf '%s' "$norm" | grep -qE 'git[[:space:]]+(commit|push|merge|cherry-pick|revert|rebase|am)([[:space:]]|$)' && guarded=1
+  printf '%s' "$norm" | grep -qE 'git[[:space:]]+(commit|push|merge|cherry-pick|revert|rebase|am|pull)([[:space:]]|$)' && guarded=1
+  printf '%s' "$norm" | grep -qE 'git[[:space:]]+pull([[:space:]]|$)' && printf '%s' "$norm" | grep -qE '[[:space:]]--ff-only([[:space:]]|$)' && guarded=0
   top=""
   [ -n "$repo" ] && [ -d "$repo" ] && top="$(git -C "$repo" rev-parse --show-toplevel 2>/dev/null || true)"
   if [ -z "$top" ]; then
@@ -119,6 +127,7 @@ while IFS= read -r seg; do
     printf '%s' "$norm" | grep -qE 'git[[:space:]]+commit([[:space:]]|$)' && deny "commit on main. $GUIDE $SPLIT"
     printf '%s' "$norm" | grep -qE 'git[[:space:]]+push([[:space:]]|$)' && deny "push from main. $GUIDE $SPLIT"
     printf '%s' "$norm" | grep -qE 'git[[:space:]]+(merge|cherry-pick|revert|rebase|am)([[:space:]]|$)' && deny "merge, cherry-pick, revert, rebase or am on main is a commit on main. $GUIDE $SPLIT"
+    printf '%s' "$norm" | grep -qE 'git[[:space:]]+pull([[:space:]]|$)' && ! printf '%s' "$norm" | grep -qE '[[:space:]]--ff-only([[:space:]]|$)' && deny "pull on main can create a merge commit or rewrite main; use git pull --ff-only, which cannot. $GUIDE"
   fi
 
   # Raise only: "checkout main", "switch main", a return to the previous branch
