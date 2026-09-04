@@ -44,6 +44,15 @@ esac
 [ -z "$cmd" ] && deny "this hook could not read the command from its input (fail closed)."
 case "$cmd" in *git*) ;; *) exit 0 ;; esac
 
+# The reader walks the command one character at a time, so its cost rises faster
+# than the length. A hook that hits its timeout renders no decision and the call
+# proceeds, which is the one failure that fails OPEN, so a command too long to
+# read inside the budget is denied instead of ground through. 64KB reads in
+# about seven seconds here; a git command that size is not a real one.
+if [ ${#cmd} -gt 65536 ]; then
+  deny "this command is ${#cmd} characters, too long for the wall to read inside its time budget, so its git call cannot be checked (fail closed). Split it, or pass the large part with -F <file>."
+fi
+
 # Read the WHOLE command as shell tokens in pure bash: quotes and backslashes
 # honored, nothing expanded or executed. Segment separators (; & | newline
 # ( ) and an unquoted # comment) are emitted as SEP, so a separator inside a
@@ -76,7 +85,11 @@ tokenize_all() {
         "'"|'"') q="$c"; have=1 ;;
         '\') i=$((i+1)); c="${s:i:1}"; if [ "$c" != $'\n' ]; then cur+="$c"; have=1; fi ;;
         '<')
-          if [ "${s:$((i+1)):1}" = '<' ] && [ "${s:$((i+2)):1}" != '<' ]; then
+          if [ "${s:$((i+1)):1}" = '<' ] && [ "${s:$((i+2)):1}" = '<' ]; then
+            # A herestring. Consume all three so the second "<" is never read
+            # as a heredoc opener and its word never parked as a delimiter.
+            cur+='<<<'; i=$((i+2)); have=1
+          elif [ "${s:$((i+1)):1}" = '<' ]; then
             j=$((i+2))
             [ "${s:j:1}" = '-' ] && j=$((j+1))
             while [ "${s:j:1}" = ' ' ] || [ "${s:j:1}" = $'\t' ]; do j=$((j+1)); done
@@ -89,7 +102,13 @@ tokenize_all() {
                 [ "$ch" = "$dq" ] && { j=$((j+1)); break; }
                 d+="$ch"
               else
-                case "$ch" in ' '|$'\t'|$'\n'|';'|'&'|'|'|'('|')') break ;; esac
+                # Bash ends the delimiter word at a redirect too, and a
+                # backslash quotes the next character rather than joining it.
+                case "$ch" in ' '|$'\t'|$'\n'|';'|'&'|'|'|'('|')'|'<'|'>') break ;; esac
+                if [ "$ch" = '\' ]; then
+                  j=$((j+1)); ch="${s:j:1}"
+                  [ -z "$ch" ] && break
+                fi
                 d+="$ch"
               fi
               j=$((j+1))

@@ -49,11 +49,11 @@
 - Subagents (helper sessions you spawn) write LOCAL FILES ONLY: never the
   brain, never a commit, push, deploy, or SQL (database commands, by any tool).
   Those calls are denied to a subagent, not escalated to a prompt. Hooks fire
-  inside subagents, so the brain wall and the main wall hold there; the rest
-  bind as prose.
+  inside subagents, so the brain wall, the database door and the main wall all
+  hold there; deploy and the rest bind as prose.
 - Two of these five have a hook behind them: the main wall denies, the brain
-  wall prompts me per record. The other three are prose only and bind just as
-  hard.
+  wall prompts me per record, and per call for a database command. The other
+  three are prose only and bind just as hard.
 
 ## Session start (every session, every device)
 - Load context before acting: this file, the active lane (a line of work with

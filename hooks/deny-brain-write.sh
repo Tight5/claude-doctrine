@@ -32,7 +32,7 @@ fi
 [ -z "$tool" ] && deny "this hook could not read the tool name from its input, so it cannot tell a main-session write from a subagent's (fail closed)."
 [ -n "$agent" ] && deny "a subagent never writes to the brain and never runs SQL. Those calls are denied to a subagent, not escalated to a prompt. Hand the record to the main session for the founder's word."
 case "$tool" in
-  *execute_sql|*apply_migration|*deploy_edge_function)
+  *execute_sql|*apply_migration|*deploy_edge_function|*merge_branch|*reset_branch|*rebase_branch|*delete_branch)
     reason="FOUNDER GATE: $tool is a database command against the store the brain lives in, so it reaches the brain by another door. Read the statement shown here and give your word on this one call. Never per batch, never on standing authority." ;;
   *)
     reason="FOUNDER GATE, per record: ${tool:-this brain write} carries the text shown here. Approve only if you have read it in the exact words it will carry and give your word on this record; the lead then shows read-back proof. Never per batch, never on standing authority." ;;
