@@ -29,9 +29,13 @@
   authority (founder ruling 2026-09-01, superseding "NO agent write,
   ever"). Hook-backed: a PreToolUse hook (a check that runs before a tool call
   and can block it) turns my brain writes into a prompt that shows me the
-  exact text, and denies by itself where it cannot prompt. The prose is the
-  reason; the hook walls the tool door, and the rule covers every other door
-  too.
+  exact text, and denies by itself where it cannot prompt. It covers the
+  database door too, since the brain lives in a Supabase store and a SQL
+  command, a migration or an edge-function deploy reaches it without touching
+  a capture tool; every such call is gated, reads included, because
+  classifying SQL by its text is how a wall gets fooled. The prose is the
+  reason; the hook walls those doors, and the rule covers any door it does not
+  know about.
 - No commit or push to main without my approval at the moment it happens.
   Hook-backed: a PreToolUse hook on git and on the GitHub file-write tools
   denies it, with no bypass by design. The approved paths are a pull request I
@@ -45,11 +49,11 @@
 - Subagents (helper sessions you spawn) write LOCAL FILES ONLY: never the
   brain, never a commit, push, deploy, or SQL (database commands, by any tool).
   Those calls are denied to a subagent, not escalated to a prompt. Hooks fire
-  inside subagents, so the brain wall and the main wall hold there; the rest
-  bind as prose.
+  inside subagents, so the brain wall, the database door and the main wall all
+  hold there; deploy and the rest bind as prose.
 - Two of these five have a hook behind them: the main wall denies, the brain
-  wall prompts me per record. The other three are prose only and bind just as
-  hard.
+  wall prompts me per record, and per call for a database command. The other
+  three are prose only and bind just as hard.
 
 ## Session start (every session, every device)
 - Load context before acting: this file, the active lane (a line of work with

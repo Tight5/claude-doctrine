@@ -44,13 +44,33 @@ esac
 [ -z "$cmd" ] && deny "this hook could not read the command from its input (fail closed)."
 case "$cmd" in *git*) ;; *) exit 0 ;; esac
 
+# The reader walks the command one character at a time, so its cost rises faster
+# than the length. A hook that hits its timeout renders no decision and the call
+# proceeds, which is the one failure that fails OPEN, so a command too long to
+# read inside the budget is denied instead of ground through. 64KB reads in
+# about seven seconds here; a git command that size is not a real one.
+if [ ${#cmd} -gt 65536 ]; then
+  deny "this command is ${#cmd} characters, too long for the wall to read inside its time budget, so its git call cannot be checked (fail closed). Split it, or pass the large part with -F <file>."
+fi
+
 # Read the WHOLE command as shell tokens in pure bash: quotes and backslashes
 # honored, nothing expanded or executed. Segment separators (; & | newline
 # ( ) and an unquoted # comment) are emitted as SEP, so a separator inside a
-# quoted commit message is just text. Returns 1 on unbalanced quoting.
+# quoted commit message is just text.
+#
+# A heredoc body is DATA, not command structure: the shell hands it to the
+# command and never parses it. So "<<EOF", "<<-EOF", "<<'EOF'" and the quoted
+# forms park their delimiter, and at the next real newline the body is skipped
+# whole, up to and including its terminator line. Without that, an apostrophe
+# in a heredoc body ("the founder's word", any prose, most Python) reads as an
+# unbalanced quote and fails the whole command closed. A herestring, "<<<", is
+# not a heredoc and is left alone.
+#
+# Returns 1 on unbalanced quoting.
 SEP=$'\001'
 tokenize_all() {
   local s="$1"; local n=${#s}; local i=0; local c q="" cur="" have=0
+  local hd=() j k ls line ch dq d
   TOK=()
   while [ $i -lt $n ]; do
     c="${s:i:1}"
@@ -64,15 +84,66 @@ tokenize_all() {
       case "$c" in
         "'"|'"') q="$c"; have=1 ;;
         '\') i=$((i+1)); c="${s:i:1}"; if [ "$c" != $'\n' ]; then cur+="$c"; have=1; fi ;;
+        '<')
+          if [ "${s:$((i+1)):1}" = '<' ] && [ "${s:$((i+2)):1}" = '<' ]; then
+            # A herestring. Consume all three so the second "<" is never read
+            # as a heredoc opener and its word never parked as a delimiter.
+            cur+='<<<'; i=$((i+2)); have=1
+          elif [ "${s:$((i+1)):1}" = '<' ]; then
+            j=$((i+2))
+            [ "${s:j:1}" = '-' ] && j=$((j+1))
+            while [ "${s:j:1}" = ' ' ] || [ "${s:j:1}" = $'\t' ]; do j=$((j+1)); done
+            dq=""
+            case "${s:j:1}" in "'"|'"') dq="${s:j:1}"; j=$((j+1)) ;; esac
+            d=""
+            while [ $j -lt $n ]; do
+              ch="${s:j:1}"
+              if [ -n "$dq" ]; then
+                [ "$ch" = "$dq" ] && { j=$((j+1)); break; }
+                d+="$ch"
+              else
+                # Bash ends the delimiter word at a redirect too, and a
+                # backslash quotes the next character rather than joining it.
+                case "$ch" in ' '|$'\t'|$'\n'|';'|'&'|'|'|'('|')'|'<'|'>') break ;; esac
+                if [ "$ch" = '\' ]; then
+                  j=$((j+1)); ch="${s:j:1}"
+                  [ -z "$ch" ] && break
+                fi
+                d+="$ch"
+              fi
+              j=$((j+1))
+            done
+            [ -n "$d" ] && hd+=("$d")
+            if [ "$have" = 1 ]; then TOK+=("$cur"); cur=""; have=0; fi
+            i=$((j-1))
+          else
+            cur+="$c"; have=1
+          fi ;;
         ' '|$'\t') if [ "$have" = 1 ]; then TOK+=("$cur"); cur=""; have=0; fi ;;
         ';'|'&'|'|'|$'\n'|'('|')')
           if [ "$have" = 1 ]; then TOK+=("$cur"); cur=""; have=0; fi
-          TOK+=("$SEP") ;;
+          TOK+=("$SEP")
+          if [ "$c" = $'\n' ] && [ ${#hd[@]} -gt 0 ]; then
+            k=$((i+1))
+            for d in "${hd[@]}"; do
+              while [ $k -lt $n ]; do
+                ls=$k
+                while [ $k -lt $n ] && [ "${s:k:1}" != $'\n' ]; do k=$((k+1)); done
+                line="${s:ls:$((k-ls))}"
+                line="${line#"${line%%[![:space:]]*}"}"
+                line="${line%"${line##*[![:space:]]}"}"
+                k=$((k+1))
+                [ "$line" = "$d" ] && break
+              done
+            done
+            hd=()
+            i=$((k-1))
+          fi ;;
         '#')
           if [ "$have" = 1 ]; then cur+="$c"
           else
             while [ $i -lt $n ] && [ "${s:i:1}" != $'\n' ]; do i=$((i+1)); done
-            TOK+=("$SEP")
+            i=$((i-1))
           fi ;;
         *) cur+="$c"; have=1 ;;
       esac
