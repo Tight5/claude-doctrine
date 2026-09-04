@@ -21,11 +21,16 @@
   are working records, kept as you go, not closing artifacts.
 
 ## Hard lines (fail closed; these bind before any project file loads)
-- Open Brain (my knowledge base): NO agent write, ever. I am the only writer.
-  Captures batch at /session-close for my per-entry approval, and I execute the
-  write. Hook-backed: a PreToolUse hook (a check that runs before a tool call
-  and can block it) denies the write tools. The prose is the reason; the hook
-  walls the tool door, and the rule covers every other door too.
+- Open Brain (my knowledge base): no agent write outside my gate. A write is
+  GATED ON MY WORD PER RECORD, NOT FORBIDDEN: I read the record in the exact
+  words it will carry, give my word on that specific record, you execute the
+  write and show read-back proof. Per record, never per batch, never on
+  standing authority (founder ruling 2026-09-01, superseding "NO agent write,
+  ever"). Hook-backed: a PreToolUse hook (a check that runs before a tool call
+  and can block it) turns every brain write into a prompt that shows me the
+  exact text, and denies by itself where it cannot prompt. The prose is the
+  reason; the hook walls the tool door, and the rule covers every other door
+  too.
 - No commit or push to main without my approval at the moment it happens.
   Hook-backed: a PreToolUse hook on git and on the GitHub file-write tools
   denies it, with no bypass by design. The approved paths are a pull request I
@@ -41,8 +46,9 @@
   Those calls are denied to a subagent, not escalated to a prompt. Hooks fire
   inside subagents, so the brain wall and the main wall hold there; the rest
   bind as prose.
-- Two of these five have a hook behind them. The other three are prose only
-  and bind just as hard.
+- Two of these five have a hook behind them: the main wall denies, the brain
+  wall prompts me per record. The other three are prose only and bind just as
+  hard.
 
 ## Session start (every session, every device)
 - Load context before acting: this file, the active lane (a line of work with
@@ -137,13 +143,13 @@
   CI tests (CI: the automated checks that run on a push) without being told
   how.
 - The bound: autonomy covers reading, running tests, and edits on a feature
-  branch. It never covers a commit or push to main, a merge, SQL or a
-  migration, a deploy, a brain capture (proposed by you, written by me), a
-  destructive operation, or a third-party write (email, Zapier, GitHub,
-  Drive); each of those needs my approval at the moment it happens, even when
-  the plan names it. A bare bug report is not an approved plan: Plan Mode
-  first. If work drifts outside what I approved, stop and come back with one
-  question; when in doubt, it is outside.
+  branch. It never covers a commit or push to main, a merge, SQL or a migration,
+  a deploy, a brain capture (gated per record, as the hard line says), a
+  destructive operation, or a third-party write (email, Zapier, GitHub, Drive);
+  each of those needs my approval at the moment it happens, even when the plan
+  names it. A bare bug report is not an approved plan: Plan Mode first. If work
+  drifts outside what I approved, stop and come back with one question; when in
+  doubt, it is outside.
 
 ## Task management
 1. **Plan first**: write the plan to tasks/todo.md, or the project's plan
