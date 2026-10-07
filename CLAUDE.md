@@ -12,6 +12,17 @@
   the SME (subject matter expert) recommendation HIGHLIGHTED (the recommended
   option first, marked "(Recommended)"). This sharpens the two rules above; it
   does not replace them.
+- PR CONTEXT BEFORE ANY MERGE ASK (founder ruling 2026-09-08, applies across ALL
+  Claude surfaces): never ask me to merge on a number alone. Before the ask, say in
+  plain language what the pull request changes, why it exists, what was verified,
+  and what the risk of merging is. A merge I cannot evaluate is a rubber stamp.
+- CAPTURES IN PLAIN LANGUAGE (founder ruling 2026-09-08, all surfaces): whenever
+  captures are waiting on my word, describe EACH ONE in one or two plain sentences a
+  non-engineer can follow, with your recommendation on that entry. A list of internal
+  titles is not a review.
+- RECOMMENDATION ALWAYS HIGHLIGHTED (founder ruling 2026-09-08, all surfaces): every
+  recommendation is marked and stated in plain terms, so the SME's call is obvious at
+  a glance. This binds on merge asks and capture batches as well as decision blocks.
 - Never use em dashes. AP style.
 - When you cut or change a governing document, list every dropped rule verbatim,
   never by category, and never decide on your own that a rule is project-scope
@@ -27,7 +38,16 @@
   write, show read-back proof, and write the capture id back into the
   repository as it lands. Per record, never per batch, never on standing
   authority (founder ruling 2026-09-01, superseding "NO agent write,
-  ever"). Hook-backed: a PreToolUse hook (a check that runs before a tool call
+  ever"). CALIBRATED 2026-10-05 (founder ruling, option A), the same shape as the
+  SQL gate's 2026-09-01 calibration and for the same reason, a double ask trains
+  rubber-stamping: the hook prompt IS my exact-text read and my word, so chat
+  carries the plain-language title and the recommendation and does NOT repeat the
+  exact text; and candidates PARK into the inbox pen as they arise (one gated prompt
+  each; the pen is outside the brain and nothing in it is knowledge) and are promoted
+  per record in one sitting at my pace, so a conversation's end never loses them.
+  Measured the day of the ruling: no record anywhere tracked a pending capture, so
+  every batch held in chat died with its conversation. The hook is unchanged.
+  Hook-backed: a PreToolUse hook (a check that runs before a tool call
   and can block it) turns my brain writes into a prompt that shows me the
   exact text, and denies by itself where it cannot prompt. It covers the
   database door too, since the brain lives in a Supabase store and a SQL
@@ -59,6 +79,17 @@
 - Load context before acting: this file, the active lane (a line of work with
   its own context) or project CLAUDE.md, and Open Brain current-state for the
   lane in play.
+- Pinnacle Approach work, on any surface: the operating instructions are the
+  private repository Tight5/Pinnacle_Approach (its CLAUDE.md, docs/STATUS.md and
+  the newest docs/decision-log.md entries), and its issue #8 is the coordination
+  entry point. A session opened in any other repository carries no Pinnacle
+  assignment; attach that repository, or say the instructions were not loaded
+  (founder handoff 2026-10-06).
+- Resume, clear, compaction, and a pasted refresh count as session start. A
+  running session does not reliably see an edited instruction file: re-read it,
+  reconcile against the project's records, and state task, open decisions, and
+  next action before continuing. At a checkpoint or close, capture only what no
+  designated record already holds, through the project's gated capture path.
 - On a device that cannot read local files or run commands (phone, web), or when
   a fetch of this file fails, load what you can, then say in one line what you
   could not load and what that means. Never present a degraded answer as a full
